@@ -1,0 +1,133 @@
+Question 1: Paging and Memory Access
+
+Consider a system with the following properties:
+
+48-bit logical address space
+8 KB page size
+8-byte page table entries
+Three-level paging scheme
+
+a) How many bits are required for the page offset?
+b) Calculate the size of the top-level page table
+c) If the memory access time is 200 ns and TLB access time is 20 ns, calculate the effective memory access time with a TLB hit rate of 90%.
+d) Assume that a process needs 1 GB of continguous virtual memory and all its page table entries are stored in main memory. Also assume the only entries in this process's page table are the ones associated with this 1GB of contiguous memory. How much memory in bytes is required to store all page tables for this process?
+
+Question 2: Linux System Call
+Write a Linux system call get_siblings() that takes a PID and a pointer to an array of pid_t values as arguments. It populates the array with the PIDs of the siblings of the process specified. The system call prototype is:
+
+int get_siblings(pid_t pid, pid_t *sibling_array, size_t array_size);
+
+a) Write the implementation of the system call. Assume find_process_by_pid() is available. Also assume that you have access to bootlin.
+b) Write a simple user-space program to test the system call.
+
+Question 3: File Systems
+
+Consider a simple file system where each file is described by an inode containing:
+
+File size (in bytes)
+12 direct block pointers
+1 single indirect block pointer
+1 double indirect block pointer
+Assume the block size is 4 KB.
+
+a) Calculate the maximum file size supported by this file system.
+b) If a file requires 1 GB of storage, how many blocks are used for direct, single indirect, and double indirect pointers?
+c) Propose a modification to this file system to support larger files.
+
+Question 4: HW3
+
+You were selected to be a TA for Jason Nieh's Operating Systems in Fall 2025. The students are in the trenches trying attempting to complete HW3, and a student approaches you complaining that their kernel crashes when pstrace_enable() is called. You look at their solution and it looks like they have sprinkled pstrace_add() calls in the right places and wake_blocked_gets() is correctly called near the end of __schedule(). However, when you look at the rest of their pstrace.c file you notice some key issueS with their implementation.
+
+void pstrace_add(struct task_struct *p, long stateoption)
+{
+	struct pstrace_kernel *pst = &pstrace;
+	int tail;
+	unsigned long flags;
+	if (!p)
+		return;
+	if (!task_is_pstraced(p))
+		return;
+
+	spin_lock(&pst->pstrace_lock);
+	tail = pst->tail;
+	if (p->exit_state == EXIT_ZOMBIE || p->exit_state == EXIT_DEAD)
+		pst->entry[tail].state = p->exit_state;
+	else if (stateoption != 0)
+		pst->entry[tail].state = stateoption;
+	else
+		pst->entry[tail].state = p->__state;
+	pst->entry[tail].state &= PSTRACE_STATES_MASK;
+	strscpy(pst->entry[tail].comm, p->comm, sizeof(pst->entry[tail].comm));
+	pst->entry[tail].pid = task_tgid_nr(p);
+	pst->entry[tail].tid = task_pid_nr(p);
+	pst->counter++;
+	if (unlikely(pst->empty))
+		pst->empty = false;
+	else if (pst->head == pst->tail)
+		pst->head = ring_buffer_idx_inc(pst->head);
+	pst->tail = ring_buffer_idx_inc(pst->tail);
+
+	spin_unlock(&pst->pstrace_lock);
+
+	copy_to_blocked_gets(false);
+}
+
+static void copy_to_blocked_gets(bool unconditional)
+{
+	struct pstrace_kernel *pst = &pstrace;
+	struct list_head *evt_list, *tmp;
+	spin_lock(&pstrace_evt_list_lock);
+	list_for_each_safe(evt_list, tmp, &pstrace_evt_list) {
+		struct pstrace_evt *evt =
+			list_entry(evt_list, struct pstrace_evt, head);
+
+		if (!evt->copied &&
+		    (unconditional || evt->counter <= pst->counter)) {
+			int limit =
+				evt->counter - pst->counter + PSTRACE_BUF_SIZE;
+			if (limit <= 0)
+				evt->counter = pst->counter;
+			evt->nr_entries = pstrace_get_buf(pst, evt->buf, limit);
+			evt->copied = true;
+		}
+	}
+	spin_unlock(&pstrace_evt_list_lock);
+}
+
+void wake_blocked_gets(void)
+{
+	struct list_head *evt_list, *tmp;
+	bool woken = true;
+	unsigned long flags;
+	local_irq_save(flags);
+	while (woken) {
+		woken = false;
+		spin_lock(&pstrace_evt_list_lock);
+		list_for_each_safe(evt_list, tmp, &pstrace_evt_list) {
+			struct pstrace_evt *evt =
+				list_entry(evt_list, struct pstrace_evt, head);
+
+			if (evt->copied) {
+				evt->woken = true;
+				woken = true;
+				list_del(&evt->head);
+				/*
+				 * wake_up_all() may cause a state change that in turn invokes
+				 * pstrace_add(). This will in turn try to grab
+				 * &pstrace_evt_list_lock. So we MUST release the lock here.
+				 */
+				spin_unlock(&pstrace_evt_list_lock);
+				wake_up_all(&evt->evt_waitq);
+				break;
+			}
+		}
+	}
+	spin_unlock(&pstrace_evt_list_lock);
+	local_irq_restore(flags);
+}
+
+
+a) What would you tell this student is problematic with this code?
+b) Suggest how to fix this.
+
+
