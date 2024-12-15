@@ -10,7 +10,8 @@ Three-level paging scheme
 a) How many bits are required for the page offset?
 b) Calculate the size of the top-level page table
 c) If the memory access time is 200 ns and TLB access time is 20 ns, calculate the effective memory access time with a TLB hit rate of 90%.
-d) Assume that a process needs 1 GB of continguous virtual memory and all its page table entries are stored in main memory. Also assume the only entries in this process's page table are the ones associated with this 1GB of contiguous memory. How much memory in bytes is required to store all page tables for this process?
+d) Assume that a process is using (has written to) 1 GB of continguous virtual memory starting at address 0x0 and all its page table entries are stored in main memory. Also assume the only entries in this process's page table are the ones associated with this 1GB of contiguous memory. How much memory in bytes is required to store all page tables for this process?
+e) Instead of a 1GB virtual memory space, assume it is instead 16KB of virtual memory space (so addresses 0x0-0x4000), and the user has writted to this chunk of memory by . How many physical pages of memory have been allocated for data. Assume that the uppermost page table is contiguously physically allocated first at physical address 0x0, and the policy that the kernel uses to give a process a physical frame of memory is to give the first free block with the lowest starting address. Given this scenario, write/draw a description of each physical memory frame that is used for paging. Be sure toinclude the starting physical address of that frame and the non-zero contents of that frame (hint there shouldnt be much) with order preserved.
 
 Question 2: Linux System Call
 Write a Linux system call get_siblings() that takes a PID and a pointer to an array of pid_t values as arguments. It populates the array with the PIDs of the siblings of the process specified. The system call prototype is:
@@ -130,4 +131,12 @@ void wake_blocked_gets(void)
 a) What would you tell this student is problematic with this code?
 b) Suggest how to fix this.
 
+Question 5: Scheduling
 
+Two weeks have passed and now your OS students are implementing their very own oven scheduler! A student comes to you with their scheduling architecture which has the following properties:
+
+- Priority scheduling (lowest weight value goes first)
+- If there are multiple tasks with the same weight, they are scheduled using RR (similar to RT) 
+
+a) Imagine a scenario where you have the following tasks P1, P2, P3, P4, P5, P6, P7 with respective weights 1, 2, 2, 2, 2, 3, 3. Assume they all "arrive" on the CPU at 0ms. What is the average completion time of the tasks?
+b) If we assume that a task is given a lower weight value if it is expected to have quicker total execution time, is this scheduling architecture an optimal one to minimize average execution time? If it is, write an explanation as to why, if not, make one or more suggestions to the student that would make his architecture optimal. 
