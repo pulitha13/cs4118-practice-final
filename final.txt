@@ -36,11 +36,11 @@ File size (in bytes)
 12 direct block pointers
 1 single indirect block pointer
 1 double indirect block pointer
-Assume the block size is 4 KB.
+Assume the block size is 4 KB, and it takes 4 bytes to store a datablock number.
 
 a) Calculate the maximum file size supported by this file system.
-b) If a file requires 1 GB of storage, how many blocks are used for direct, single indirect, and double indirect pointers?
-c) Propose a modification to this file system to support larger files.
+b) If a file requires 1 MB of storage, how many blocks are used for direct, single indirect, and double indirect pointers? Assume at every decision point, the filesystem choose the path that would consume the least amount of datablocks.
+c) Propose a modification to this file system to support larger files (at least 1GB).
 
 Question 4: HW3
 
