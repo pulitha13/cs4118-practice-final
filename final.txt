@@ -47,7 +47,7 @@ Question 4: HW3
 You were selected to be a TA for Jason Nieh's Operating Systems in Fall 2025. The students are in the trenches trying attempting to complete HW3, and 
 a student approaches you complaining that their kernel crashes when pstrace_enable() is called. You look at their solution and it looks like they 
 have sprinkled pstrace_add() calls in the right places and wake_blocked_gets() is correctly called near the end of __schedule(). However, when you 
-look at the rest of their pstrace.c file you notice some key issueS with their implementation.
+look at the rest of their pstrace.c file you notice some key issue(s) with their implementation.
 
 void pstrace_add(struct task_struct *p, long stateoption)
 {
