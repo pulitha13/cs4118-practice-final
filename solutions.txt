@@ -1,0 +1,93 @@
+Question 1:
+
+a) 13 bits
+
+8KB --> 2^13 --> 13 bits to index by byte in a page
+
+b) 32KB
+
+VA is split as follows
+
+[ 15 | 10 | 10 | 13]
+
+Thus the top level page table has 2^15 entries 
+
+--> The top level page table uses 2^18 bytes
+
+c) 280ns
+
+--> (.9)(200 + 20) + (.1)(20 + 200 * 4) = 280ns
+
+d) 1,318,912 bytes
+
+1 GB --> 2^30 bytes --> 2^17 pages for data
+
+Since each a page tables can store 2^10 entries, we need 2^7 of them to store all the pfns
+for the 2^17 pages of data we need.
+
+--> There are 2^7 pages of physical memory allocated for 3rd level page tables
+
+Since we only have 2^7 3rd level page tables, we can store the pfns of all of those page tables 
+in a single 2nd level page table.
+
+--> There is 1 page of physical memory alloacted for 2nd level page tables
+
+In part b) we found that the top level page table uses 2^18 bytes which must mean we need 2^5
+pages of physical memory to store it
+
+--> There is 2^5 pages of physical memory allocated for 1st level page tables
+
+--> (1 + 2^5 + 2^7) * 2^13 = 1,318,912 bytes
+
+e) Solution below
+
+PHYSICAL MEMORY		NOTES
+
+0x00000 : 32	| Start of 1st level page table
+		| 
+...		| 0th index stores 32 since that is the 
+		| pfn of 0x40000 where we have our next free frame
+		|-------------------------------------------------
+0x40000 : 33	| Start of 2nd level page table
+		|
+...		| 0th index stores 33 since that is the pfn of 0x42000
+		| where we have our next free frame.
+		|--------------------------------------------------
+0x42000 : 35	| Start of the 3rd level page table
+0x42008 : 34	|
+		| These two indexes are filled with pfns of the actual data
+...		| the bottom is allocated first and thus has the lower pfn.
+		|--------------------------------------------------
+0x44000 : DATA	|
+		| Real Data corresponding to VAs [0x2000, 0x4000)
+... DATA ...	|
+		|--------------------------------------------------
+0x46000 : DATA	|
+		|
+... DATA ...	| Real Data corresponding to VAs [0x0000, 0x2000)
+		|
+
+Story of wtf happened:
+
+We know that the first level page table will take up the first 2^5 frames of memory
+as stated by problem and results from b). Thus, when we make our first write to memory
+address 0x03fff, we will get a pagefault and handle it by filling out the page table and 
+allocating physical pages of memory as we need it. If we dissect the VA as described in b) 
+we see that we would first attempt to index into the 0th index of the 1st level page table 
+which has no entry, so we allocate the next physical frame we can which is frame 32 
+(physical frame with pfn 32 is the one right after the 1st level page table which is how we
+choose new physical frames according to the problem) to be used for the 2nd level. We then know
+that this is a new page table that obviously has no entries, we we need to allocate another page
+of physical memory for the respective 3rd level page table. The next free physical frame is frame 
+33, so we place that value in the 0th index of the 2nd level page table. Finally, we know that the 
+respective index that we need in the 3rd level page table is 0x1 by inspecting the bits of address
+0x3fff, so we allocate the 34th frame for the actual data we are trying to write to and place that
+in index 1 (physical memory address 0x42008 since 0x42000 is the start of the 3rd level page table).
+Every other write this program makes will NOT be a page fault UNTIL it hits address 0x1fff. This will 
+return a fault because although we have valid entries for the 1st and 2nd level page, we do not have 
+an entry for the 3rd level page because we have no assocaiated pfn w/ index 0 (which is what is used
+for 0x1fff). We then will allocate the 35 frame to store the data we are trying to write and update the 
+0th index of the 3rd level page table accordingly.
+
+
+
