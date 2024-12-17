@@ -89,5 +89,9 @@ an entry for the 3rd level page because we have no assocaiated pfn w/ index 0 (w
 for 0x1fff). We then will allocate the 35 frame to store the data we are trying to write and update the 
 0th index of the 3rd level page table accordingly.
 
+Question 4:
+
+Remember to disable irqs!
+Call your function inside lock!
 
 
